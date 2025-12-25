@@ -4,122 +4,128 @@ import com.battle.heroes.army.Unit;
 import com.battle.heroes.army.programs.Edge;
 import com.battle.heroes.army.programs.UnitTargetPathFinder;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class UnitTargetPathFinderImpl implements UnitTargetPathFinder {
 
     private static final int WIDTH = 27;
     private static final int HEIGHT = 21;
 
-    // Направления движения: 8 направлений (включая диагонали)
+    // 8 направлений (включая диагонали)
     private static final int[][] DIRECTIONS = {
-            {-1, 0}, {1, 0}, {0, -1}, {0, 1},   // вверх, вниз, влево, вправо
-            {-1, -1}, {-1, 1}, {1, -1}, {1, 1}  // диагонали
+            {-1, 0}, {1, 0}, {0, -1}, {0, 1},
+            {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
     };
 
     @Override
     public List<Edge> getTargetPath(Unit attackUnit, Unit targetUnit, List<Unit> existingUnitList) {
-        // Ваше решение
+        List<Edge> empty = new ArrayList<>();
+        if (attackUnit == null || targetUnit == null) return empty;
 
-        // Получаем координаты атакующего и целевого юнитов
         int startX = attackUnit.getxCoordinate();
         int startY = attackUnit.getyCoordinate();
         int endX = targetUnit.getxCoordinate();
         int endY = targetUnit.getyCoordinate();
 
-        // Создаём множество занятых клеток (препятствия)
-        Set<String> occupied = new HashSet<>();
-        for (Unit unit : existingUnitList) {
-            if (unit.isAlive() && unit != attackUnit && unit != targetUnit) {
-                occupied.add(unit.getxCoordinate() + "," + unit.getyCoordinate());
+        if (!inBounds(startX, startY) || !inBounds(endX, endY)) return empty;
+
+        // Если уже стоим на цели
+        if (startX == endX && startY == endY) {
+            List<Edge> path = new ArrayList<>();
+            path.add(new Edge(startX, startY));
+            return path;
+        }
+
+        // blocked[x][y] = занято живым юнитом (кроме атакующего и цели)
+        boolean[][] blocked = new boolean[WIDTH][HEIGHT];
+        if (existingUnitList != null) {
+            for (Unit u : existingUnitList) {
+                if (u == null) continue;
+                if (!u.isAlive()) continue;
+                if (u == attackUnit || u == targetUnit) continue;
+
+                int x = u.getxCoordinate();
+                int y = u.getyCoordinate();
+                if (inBounds(x, y)) {
+                    blocked[x][y] = true;
+                }
             }
         }
 
-        // Матрица расстояний и посещённых клеток
-        int[][] distance = new int[WIDTH][HEIGHT];
-        for (int[] row : distance) {
-            Arrays.fill(row, Integer.MAX_VALUE);
+        // BFS
+        boolean[][] visited = new boolean[WIDTH][HEIGHT];
+        int[][] prevX = new int[WIDTH][HEIGHT];
+        int[][] prevY = new int[WIDTH][HEIGHT];
+
+        // -1 значит "предка нет"
+        for (int x = 0; x < WIDTH; x++) {
+            for (int y = 0; y < HEIGHT; y++) {
+                prevX[x][y] = -1;
+                prevY[x][y] = -1;
+            }
         }
 
-        // Матрица для восстановления пути (хранит предыдущую клетку)
-        Edge[][] previous = new Edge[WIDTH][HEIGHT];
+        ArrayDeque<int[]> q = new ArrayDeque<>();
+        visited[startX][startY] = true;
+        q.addLast(new int[]{startX, startY});
 
-        // Приоритетная очередь для алгоритма Дейкстры (BFS с приоритетом)
-        PriorityQueue<int[]> queue = new PriorityQueue<>(Comparator.comparingInt(a -> a[2]));
+        boolean found = false;
 
-        // Начинаем с позиции атакующего юнита
-        distance[startX][startY] = 0;
-        queue.offer(new int[]{startX, startY, 0});
+        while (!q.isEmpty()) {
+            int[] cur = q.pollFirst();
+            int x = cur[0];
+            int y = cur[1];
 
-        while (!queue.isEmpty()) {
-            int[] current = queue.poll();
-            int x = current[0];
-            int y = current[1];
-            int dist = current[2];
-
-            // Если достигли цели — прекращаем поиск
             if (x == endX && y == endY) {
+                found = true;
                 break;
             }
 
-            // Пропускаем, если уже нашли более короткий путь
-            if (dist > distance[x][y]) {
-                continue;
-            }
+            for (int[] d : DIRECTIONS) {
+                int nx = x + d[0];
+                int ny = y + d[1];
 
-            // Проверяем все соседние клетки
-            for (int[] dir : DIRECTIONS) {
-                int newX = x + dir[0];
-                int newY = y + dir[1];
+                if (!inBounds(nx, ny)) continue;
+                if (visited[nx][ny]) continue;
 
-                // Проверяем границы поля
-                if (newX < 0 || newX >= WIDTH || newY < 0 || newY >= HEIGHT) {
-                    continue;
-                }
+                // клетка занята, но целевая клетка допускается (там стоит targetUnit)
+                if (blocked[nx][ny] && !(nx == endX && ny == endY)) continue;
 
-                // Проверяем, не занята ли клетка (кроме целевой)
-                String key = newX + "," + newY;
-                if (occupied.contains(key)) {
-                    continue;
-                }
-
-                // Вычисляем новое расстояние
-                int newDist = dist + 1;
-
-                // Если нашли более короткий путь
-                if (newDist < distance[newX][newY]) {
-                    distance[newX][newY] = newDist;
-                    previous[newX][newY] = new Edge(x, y);
-                    queue.offer(new int[]{newX, newY, newDist});
-                }
+                visited[nx][ny] = true;
+                prevX[nx][ny] = x;
+                prevY[nx][ny] = y;
+                q.addLast(new int[]{nx, ny});
             }
         }
 
-        // Восстанавливаем путь от цели к началу
+        if (!found) return empty;
+
+        // Восстановление пути от цели к старту
         List<Edge> path = new ArrayList<>();
+        int cx = endX;
+        int cy = endY;
 
-        // Если путь не найден
-        if (distance[endX][endY] == Integer.MAX_VALUE) {
-            return path; // Возвращаем пустой список
+        while (!(cx == startX && cy == startY)) {
+            path.add(new Edge(cx, cy));
+            int px = prevX[cx][cy];
+            int py = prevY[cx][cy];
+
+            // на всякий случай защита от неконсистентности
+            if (px == -1 || py == -1) return empty;
+
+            cx = px;
+            cy = py;
         }
 
-        // Восстанавливаем путь в обратном порядке
-        int currentX = endX;
-        int currentY = endY;
-
-        while (currentX != startX || currentY != startY) {
-            path.add(new Edge(currentX, currentY));
-            Edge prev = previous[currentX][currentY];
-            currentX = prev.getX();
-            currentY = prev.getY();
-        }
-
-        // Добавляем начальную позицию
         path.add(new Edge(startX, startY));
-
-        // Разворачиваем путь (от начала к цели)
         Collections.reverse(path);
-
         return path;
+    }
+
+    private static boolean inBounds(int x, int y) {
+        return x >= 0 && x < WIDTH && y >= 0 && y < HEIGHT;
     }
 }
