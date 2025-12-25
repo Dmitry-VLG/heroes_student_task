@@ -17,7 +17,8 @@ public class GeneratePresetImpl implements GeneratePreset {
     private static final int SIDE_WIDTH = 3;
     private static final int COMPUTER_X_OFFSET = 0; // враг слева: x=0..2
 
-        private static final boolean DEBUG = false;
+    // Если хочешь диагностику — поставь true
+    private static final boolean DEBUG = false;
 
     @Override
     public Army generate(List<Unit> unitList, int maxPoints) {
