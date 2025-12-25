@@ -11,66 +11,66 @@ import java.util.List;
 
 public class SimulateBattleImpl implements SimulateBattle {
 
-    private PrintBattleLog printBattleLog; // Позволяет логировать. Использовать после каждой атаки юнита
+    private PrintBattleLog printBattleLog;
+
+    public void setPrintBattleLog(PrintBattleLog printBattleLog) {
+        this.printBattleLog = printBattleLog;
+    }
 
     @Override
     public void simulate(Army playerArmy, Army computerArmy) throws InterruptedException {
-        // Получаем списки юнитов обеих армий
         List<Unit> playerUnits = playerArmy.getUnits();
         List<Unit> computerUnits = computerArmy.getUnits();
 
-        // Бой продолжается, пока в обеих армиях есть живые юниты
+        int round = 1;
+
         while (hasAliveUnits(playerUnits) && hasAliveUnits(computerUnits)) {
 
-            // Формируем общий список живых юнитов для текущего раунда
             List<Unit> allUnits = new ArrayList<>();
-            for (Unit unit : playerUnits) {
-                if (unit.isAlive()) {
-                    allUnits.add(unit);
-                }
-            }
-            for (Unit unit : computerUnits) {
-                if (unit.isAlive()) {
-                    allUnits.add(unit);
-                }
-            }
+            addAlive(allUnits, playerUnits);
+            addAlive(allUnits, computerUnits);
 
-            // Сортируем по убыванию атаки (первыми ходят самые сильные)
             allUnits.sort(Comparator.comparingInt(Unit::getBaseAttack).reversed());
 
-            // Каждый юнит делает ход
             for (Unit unit : allUnits) {
-                // Проверяем, что юнит ещё жив (мог погибнуть в этом раунде)
-                if (!unit.isAlive()) {
-                    continue;
-                }
+                if (!unit.isAlive()) continue;
+                if (unit.getProgram() == null) continue;
 
-                // Проверяем, есть ли ещё живые противники
-                boolean isPlayerUnit = playerUnits.contains(unit);
-                List<Unit> enemyUnits = isPlayerUnit ? computerUnits : playerUnits;
-
-                if (!hasAliveUnits(enemyUnits)) {
-                    break; // Противников не осталось
-                }
-
-                // Юнит атакует
                 Unit target = unit.getProgram().attack();
 
-                // Логируем результат атаки
-                printBattleLog.printBattleLog(unit, target);
+                if (target == null) {
+                    System.out.println("Unit can not find target for attack!");
+                } else if (printBattleLog != null) {
+                    printBattleLog.printBattleLog(unit, target);
+                }
             }
+
+            System.out.println("\nRound " + round + " is over!");
+            System.out.println("Player army has " + countAlive(playerUnits) + " units");
+            System.out.println("Computer army has " + countAlive(computerUnits) + " units\n");
+
+            round++;
         }
     }
 
-    /**
-     * Проверяет, есть ли живые юниты в списке
-     */
-    private boolean hasAliveUnits(List<Unit> units) {
-        for (Unit unit : units) {
-            if (unit.isAlive()) {
-                return true;
-            }
+    private static void addAlive(List<Unit> into, List<Unit> from) {
+        for (Unit u : from) {
+            if (u != null && u.isAlive()) into.add(u);
+        }
+    }
+
+    private static boolean hasAliveUnits(List<Unit> units) {
+        for (Unit u : units) {
+            if (u != null && u.isAlive()) return true;
         }
         return false;
+    }
+
+    private static int countAlive(List<Unit> units) {
+        int c = 0;
+        for (Unit u : units) {
+            if (u != null && u.isAlive()) c++;
+        }
+        return c;
     }
 }

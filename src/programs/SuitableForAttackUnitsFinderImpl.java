@@ -10,44 +10,37 @@ public class SuitableForAttackUnitsFinderImpl implements SuitableForAttackUnitsF
 
     @Override
     public List<Unit> getSuitableUnits(List<List<Unit>> unitsByRow, boolean isLeftArmyTarget) {
-        // Ваше решение
         List<Unit> suitableUnits = new ArrayList<>();
+        if (unitsByRow == null) return suitableUnits;
 
-        // Проходим по каждому ряду юнитов
         for (List<Unit> row : unitsByRow) {
-            if (row == null || row.isEmpty()) {
-                continue;
-            }
+            if (row == null || row.isEmpty()) continue;
 
-            // Находим крайнего юнита в ряду в зависимости от направления атаки
-            Unit suitableUnit = null;
+            Unit best = null;
 
             for (Unit unit : row) {
-                if (unit == null || !unit.isAlive()) {
+                if (unit == null || !unit.isAlive()) continue;
+
+                if (best == null) {
+                    best = unit;
                     continue;
                 }
 
-                if (suitableUnit == null) {
-                    suitableUnit = unit;
+                int x = unit.getxCoordinate();
+                int bestX = best.getxCoordinate();
+
+                // Если атакуем ЛЕВУЮ армию (компьютера на x=0..2), атакующий справа,
+                // значит доступен самый "правый" из ряда -> max X.
+                // Если атакуем ПРАВУЮ армию (игрока на x=24..26), атакующий слева,
+                // значит доступен самый "левый" -> min X.
+                if (isLeftArmyTarget) {
+                    if (x > bestX) best = unit;
                 } else {
-                    if (isLeftArmyTarget) {
-                        // Атакуем левую армию — ищем юнита с минимальной координатой Y (не закрыт слева)
-                        if (unit.getxCoordinate() < suitableUnit.getxCoordinate()) {
-                            suitableUnit = unit;
-                        }
-                    } else {
-                        // Атакуем правую армию — ищем юнита с максимальной координатой Y (не закрыт справа)
-                        if (unit.getxCoordinate() > suitableUnit.getxCoordinate()) {
-                            suitableUnit = unit;
-                        }
-                    }
+                    if (x < bestX) best = unit;
                 }
             }
 
-            // Добавляем найденного подходящего юнита в результат
-            if (suitableUnit != null) {
-                suitableUnits.add(suitableUnit);
-            }
+            if (best != null) suitableUnits.add(best);
         }
 
         return suitableUnits;
