@@ -1,4 +1,4 @@
-# Heroes Student Task
+# Heroes_Student_Task
 
 Проект содержит реализации четырёх интерфейсов из `heroes_task_lib`:
 
