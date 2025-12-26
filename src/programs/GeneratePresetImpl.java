@@ -17,14 +17,12 @@ public class GeneratePresetImpl implements GeneratePreset {
     private static final int SIDE_WIDTH = 3;
     private static final int COMPUTER_X_OFFSET = 0; // враг слева: x=0..2
 
-    // Если хочешь диагностику — поставь true
     private static final boolean DEBUG = false;
 
     @Override
     public Army generate(List<Unit> unitList, int maxPoints) {
         List<Unit> templates = (unitList == null) ? Collections.emptyList() : new ArrayList<>(unitList);
 
-        // Сортировка строго по ТЗ:
         // 1) baseAttack / cost (desc)
         // 2) health / cost (desc)
         // Доп. стабилизаторы (чтобы поведение было детерминированным при равенстве):
@@ -97,8 +95,6 @@ public class GeneratePresetImpl implements GeneratePreset {
                         y
                 );
 
-                // Ключевое исправление: Program не шарим между юнитами.
-                // Пытаемся клонировать Program, привязав unit к newUnit.
                 Program newProgram = cloneProgramForUnit(t.getProgram(), newUnit);
                 newUnit.setProgram(newProgram);
 
@@ -111,7 +107,6 @@ public class GeneratePresetImpl implements GeneratePreset {
                     System.out.println("Added " + result.size() + " unit");
                 }
 
-                // если клетки закончились — дальше бессмысленно
                 if (cellIndex >= cells.size()) break;
             }
         } while (added && points < maxPoints && cellIndex < cells.size());
@@ -139,7 +134,7 @@ public class GeneratePresetImpl implements GeneratePreset {
     /**
      * Создаёт новый Program того же класса, копирует в него поля (кроме unit),
      * затем привязывает unit к newUnit.
-     *
+     * <p>
      * Если создать/скопировать невозможно — возвращает исходный program (fallback).
      */
     private static Program cloneProgramForUnit(Program templateProgram, Unit newUnit) {
@@ -162,7 +157,6 @@ public class GeneratePresetImpl implements GeneratePreset {
             return (Program) newProgObj;
         } catch (Exception ignored) {
             // fallback: если невозможно создать копию — возвращаем исходный program
-            // (лучше так, чем сломать генерацию полностью)
             return templateProgram;
         }
     }

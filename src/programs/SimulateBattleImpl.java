@@ -12,7 +12,6 @@ public class SimulateBattleImpl implements SimulateBattle {
 
     private PrintBattleLog printBattleLog;
 
-    // Оставляем сеттер: игра/тесты могут инжектить логгер через него
     public void setPrintBattleLog(PrintBattleLog printBattleLog) {
         this.printBattleLog = printBattleLog;
     }
@@ -68,14 +67,14 @@ public class SimulateBattleImpl implements SimulateBattle {
                     target = attacker.getProgram().attack();
                 }
 
-                // По ТЗ: после каждой атаки — лог через printBattleLog (target может быть null) :contentReference[oaicite:7]{index=7}
+                // После каждой атаки — лог через printBattleLog (target может быть null) :contentReference[oaicite:7]{index=7}
                 logAttack(attacker, target);
 
                 boolean deathHappened =
                         (target != null && !target.isAlive()) ||
                                 (attackerWasAlive && !attacker.isAlive());
 
-                // По ТЗ: погибшие убираются из очередей в момент смерти, очереди пересчитываются :contentReference[oaicite:8]{index=8}
+                // Погибшие убираются из очередей в момент смерти, очереди пересчитываются :contentReference[oaicite:8]{index=8}
                 if (deathHappened) {
                     playerQueue = buildQueue(playerUnits, actedThisRound);
                     computerQueue = buildQueue(computerUnits, actedThisRound);
@@ -85,12 +84,10 @@ public class SimulateBattleImpl implements SimulateBattle {
                 playerTurn = !playerTurn;
             }
 
-            // защита от бесконечного цикла (на случай странной ситуации с program == null у всех)
             if (!anyMoveThisRound) {
                 return;
             }
 
-            // Эти строки не обязательны ТЗ, но соответствуют привычному выводу, который ты показывал
             System.out.println("\nRound " + round + " is over!");
             System.out.println("Player army has " + countAlive(playerUnits) + " units");
             System.out.println("Computer army has " + countAlive(computerUnits) + " units\n");
@@ -143,7 +140,7 @@ public class SimulateBattleImpl implements SimulateBattle {
         int pa = (p == null) ? Integer.MIN_VALUE : p.getBaseAttack();
         int ca = (c == null) ? Integer.MIN_VALUE : c.getBaseAttack();
 
-        // если равны — пусть начинает игрок (можно и наоборот, но важно, чтобы было детерминировано)
+        // если равны — начинает игрок
         return pa >= ca;
     }
 
@@ -166,7 +163,6 @@ public class SimulateBattleImpl implements SimulateBattle {
                 printBattleLog.printBattleLog(attacker, target);
                 return;
             } catch (RuntimeException ignored) {
-                // если вдруг реализация printBattleLog не принимает null target — не падаем
             }
         }
 
